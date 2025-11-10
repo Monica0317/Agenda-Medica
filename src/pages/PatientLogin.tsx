@@ -27,7 +27,6 @@ export default function PatientLogin({ onLogin }: { onLogin: () => void }) {
 
     try {
       if (isRegister) {
-        // 👉 Crear nuevo paciente
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           email,
@@ -45,12 +44,12 @@ export default function PatientLogin({ onLogin }: { onLogin: () => void }) {
         });
 
         alert("Cuenta creada correctamente. Ahora inicia sesión.");
-        setIsRegister(false); // cambia a modo login
+        setIsRegister(false); 
         setFullname("");
         setPhone("");
         setPassword("");
       } else {
-        // 👉 Iniciar sesión del paciente
+ 
         await signInWithEmailAndPassword(auth, email, password);
         onLogin();
         navigate("/patient-portal");
@@ -78,7 +77,7 @@ export default function PatientLogin({ onLogin }: { onLogin: () => void }) {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* SOLO SE PIDE EN REGISTRO */}
+          
             {isRegister && (
               <>
                 <div>

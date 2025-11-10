@@ -36,7 +36,6 @@ export default function Signup() {
 
       const user = userCredential.user;
 
-      // Guardar información adicional en Firestore
       await setDoc(doc(db, "doctors", user.uid), {
         nombre: form.nombre,
         email: form.email,

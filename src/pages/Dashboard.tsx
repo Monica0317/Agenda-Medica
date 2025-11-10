@@ -40,7 +40,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // 🔹 Cargar datos desde Firestore
+  // Cargar datos desde Firestore
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -77,13 +77,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     fetchData();
   }, []);
 
-  // 🔹 Ver detalles de una cita
   const handleViewAppointmentDetails = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setShowDetailsModal(true);
   };
 
-  // 🔹 Aceptar cita (solo cambia el estado)
   const handleAcceptAppointment = async () => {
     if (!selectedAppointment) return;
 
@@ -103,7 +101,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
-  // 🔹 Crear nueva cita con estado "pending"
+  // Crear nueva cita con estado "pending"
   const handleNewAppointment = async (appointmentData: any) => {
     try {
       const docRef = await addDoc(collection(db, "appointments"), {
@@ -122,7 +120,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
-  // 🔹 Filtrado de citas
+  // Filtrado de citas
   const today = new Date().toISOString().split("T")[0];
   const todayAppointments = appointments.filter((a) => a.date === today);
   const upcomingAppointments = appointments

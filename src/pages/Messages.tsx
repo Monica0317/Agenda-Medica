@@ -45,11 +45,9 @@ export default function Messages() {
 
   const handleSendReply = () => {
     if (replyText.trim() && selectedMessage) {
-      // Aquí se enviaría la respuesta
       console.log('Enviando respuesta:', replyText);
       setReplyText('');
       setShowReply(false);
-      // Simular confirmación
       alert('Respuesta enviada correctamente');
     }
   };

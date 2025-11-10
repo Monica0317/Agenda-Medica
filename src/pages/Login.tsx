@@ -25,7 +25,7 @@ export default function Login({ onLogin }: LoginProps) {
     setError("");
 
     try {
-      // 🔹 Autenticación en Firebase Auth
+      // Autenticación en Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         credentials.email,
@@ -34,18 +34,18 @@ export default function Login({ onLogin }: LoginProps) {
 
       const user = userCredential.user;
 
-      // 🔹 Verificar si el usuario existe en la colección "doctors"
+      // Verificar si el usuario existe en la colección "doctors"
       const doctorsRef = collection(db, "doctors");
       const q = query(doctorsRef, where("email", "==", user.email));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError("❌ No tienes permisos para acceder. Solo los doctores pueden ingresar.");
+        setError(" No tienes permisos para acceder. Solo los doctores pueden ingresar.");
         await auth.signOut();
         return;
       }
 
-      // ✅ Si pasa la validación, inicia sesión
+ 
       onLogin();
       navigate("/dashboard");
 

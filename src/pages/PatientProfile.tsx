@@ -59,7 +59,6 @@ export default function PatientProfile() {
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Buscar paciente en "patients" o en "appointments"
   useEffect(() => {
     const fetchData = async () => {
       if (!patientId) return;
@@ -67,14 +66,12 @@ export default function PatientProfile() {
       try {
         let patientData: any = null;
 
-        // 🔸 1. Buscar en "patients"
         const patientRef = doc(db, "patients", patientId);
         const patientSnap = await getDoc(patientRef);
 
         if (patientSnap.exists()) {
           patientData = { id: patientSnap.id, ...patientSnap.data() };
         } else {
-          // 🔸 2. Buscar en "appointments" (paciente solicitado desde el portal)
           const appointmentsQuery = query(
             collection(db, "appointments"),
             where("patientId", "==", patientId)
@@ -97,12 +94,10 @@ export default function PatientProfile() {
           }
         }
 
-        // Guardar datos del paciente encontrados
         if (patientData) {
           setPatient(patientData as Patient);
         }
 
-        // 🔹 Traer todas las citas del paciente
         const allAppointmentsQuery = query(
           collection(db, "appointments"),
           where("patientId", "==", patientId)
@@ -124,7 +119,6 @@ export default function PatientProfile() {
     fetchData();
   }, [patientId]);
 
-  // 🔹 Agregar nota médica
   const handleAddNote = async () => {
     if (!newNote.trim() || !patientId || !patient) return;
     
@@ -133,13 +127,11 @@ export default function PatientProfile() {
       const noteWithDate = `[${formatDate(timestamp)}] ${newNote}`;
       
       if (patient.accepted) {
-        // Si el paciente está aceptado, guardar en Firestore
         const patientRef = doc(db, "patients", patientId);
         const updatedNotes = [...(patient.notes || []), noteWithDate];
         await updateDoc(patientRef, { notes: updatedNotes });
         setPatient((prev) => (prev ? { ...prev, notes: updatedNotes } : prev));
       } else {
-        // Si no está aceptado, solo actualizar localmente
         const updatedNotes = [...(patient.notes || []), noteWithDate];
         setPatient((prev) => (prev ? { ...prev, notes: updatedNotes } : prev));
       }
@@ -150,7 +142,6 @@ export default function PatientProfile() {
     }
   };
 
-  // 🔹 Aceptar paciente (registrarlo oficialmente)
   const handleAcceptPatient = async () => {
     if (!patient) return;
 
@@ -226,7 +217,6 @@ export default function PatientProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Columna izquierda - Información personal */}
         <div className="lg:col-span-1 space-y-6">
           {/* Información Personal */}
           <Card>
@@ -311,7 +301,7 @@ export default function PatientProfile() {
           </Card>
         </div>
 
-        {/* Columna derecha - Historial y notas */}
+    
         <div className="lg:col-span-2 space-y-6">
           {/* Historial de Citas */}
           <Card>

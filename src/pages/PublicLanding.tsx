@@ -8,7 +8,7 @@ import { Stethoscope } from "lucide-react";
 export default function PublicLanding() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-cyan-50 text-gray-800 flex flex-col">
-      {/* 🔹 NAVBAR SUPERIOR */}
+      {/* NAVBAR SUPERIOR */}
       <nav className="w-full bg-white/80 backdrop-blur-md border-b border-cyan-100 fixed top-0 left-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center space-x-2">

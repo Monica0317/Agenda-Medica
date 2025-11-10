@@ -82,7 +82,7 @@ export default function PatientPortal() {
     }
   }, [appointmentForm.specialty, doctors]);
 
-  // 🔹 Enviar solicitud de cita
+  // Enviar solicitud de cita
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -321,7 +321,7 @@ export default function PatientPortal() {
                       </div>
                     </div>
 
-                    {/* PREFERENCIAS DE CITA */}
+                  
                     <div className="border-t pt-6">
                       <h3 className="font-semibold text-lg mb-3 text-gray-700">Preferencias de Cita</h3>
                        {/* Especialidad */}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
-import { Calendar, FileText, Users } from "lucide-react";
+import {  Users } from "lucide-react";
 
 interface Patient {
   id: string;
@@ -24,7 +24,6 @@ export default function PatientsList() {
   useEffect(() => {
     const fetchConfirmedPatients = async () => {
       try {
-        // 🔹 Obtener solo citas confirmadas
         const confirmedQuery = query(
           collection(db, "appointments"),
           where("status", "==", "confirmed")
@@ -37,7 +36,6 @@ export default function PatientsList() {
           const data = doc.data() as any;
           const pid = data.patientId || data.userId || doc.id;
 
-          // Evitar duplicados
           if (!patientsMap[pid]) {
             patientsMap[pid] = {
               id: pid,

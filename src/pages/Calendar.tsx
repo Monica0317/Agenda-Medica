@@ -44,7 +44,7 @@ export default function Calendar({ onNavigate }: CalendarProps) {
   };
 
   const handleEditAppointment = (appointment: Appointment) => {
-    // Aquí se abriría un modal de edición
+  
     console.log('Editar cita:', appointment);
     setShowAppointmentDetails(false);
   };

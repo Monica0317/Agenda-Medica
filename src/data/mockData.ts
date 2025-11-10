@@ -14,6 +14,7 @@ export interface Patient {
   medicalHistory: string[];
 }
 
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -23,7 +24,7 @@ export interface Appointment {
   reason: string;
   status: 'confirmed' | 'pending' | 'cancelled';
   notes?: string;
-  duration: number; // en minutos
+  duration?:  number; 
   type: 'consultation' | 'followup' | 'emergency' | 'checkup';
 }
 
@@ -312,23 +313,7 @@ export const mockMessages: Message[] = [
   }
 ];
 
-export const mockStats = {
-  totalPatients: 156,
-  todayAppointments: 4,
-  monthlyAttendance: 87,
-  pendingAppointments: 8,
-  weeklyStats: [
-    { day: 'Lun', appointments: 12 },
-    { day: 'Mar', appointments: 15 },
-    { day: 'Mié', appointments: 10 },
-    { day: 'Jue', appointments: 14 },
-    { day: 'Vie', appointments: 11 },
-    { day: 'Sáb', appointments: 6 },
-    { day: 'Dom', appointments: 0 }
-  ],
-  monthlyRevenue: 4250,
-  averageWaitTime: 12 // minutos
-};
+
 
 export const mockDoctorSettings: DoctorSettings = {
   name: 'Dr. Roberto García Mendoza',

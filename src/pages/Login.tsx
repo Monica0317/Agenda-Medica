@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import Imagen from '@/assets/imagen.png';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import Imagen from "@/assets/imagen.png";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/firebase/config";
+import { useNavigate } from "react-router-dom";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 interface LoginProps {
   onLogin: () => void;
@@ -12,60 +16,87 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [credentials, setCredentials] = useState({
-    username: '',
-    password: ''
-  });
+  const [error, setError] = useState("");
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulación de login
-    if (credentials.username && credentials.password) {
+    setError("");
+
+    try {
+      // 🔹 Autenticación en Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password
+      );
+
+      const user = userCredential.user;
+
+      // 🔹 Verificar si el usuario existe en la colección "doctors"
+      const doctorsRef = collection(db, "doctors");
+      const q = query(doctorsRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setError("❌ No tienes permisos para acceder. Solo los doctores pueden ingresar.");
+        await auth.signOut();
+        return;
+      }
+
+      // ✅ Si pasa la validación, inicia sesión
       onLogin();
+      navigate("/dashboard");
+
+    } catch (err: any) {
+      console.error("Error en login:", err.message);
+      setError("Credenciales incorrectas o usuario no registrado.");
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-emerald-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-md">
-        {/* Logo y título */}
+        {/* Encabezado */}
         <div className="text-center mb-1">
-           <div className="inline-flex items-center justify-center ">
-          <img
-            src={Imagen}
-            alt="icono"
-            className="w-20 h-30 object-contain"
-          />
-        </div>
+          <div className="inline-flex items-center justify-center">
+            <img src={Imagen} alt="icono" className="w-20 h-30 object-contain" />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">MedConnect</h1>
           <p className="text-gray-600">Gestión profesional de consultorios médicos</p>
         </div>
 
-        {/* Formulario de login */}
+        {/* Tarjeta */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1 pb-25">
             <CardTitle className="text-2xl text-center text-gray-900">
               Iniciar Sesión
             </CardTitle>
             <p className="text-center text-gray-600">
-              Ingresa tus credenciales para acceder
+              Ingresa tus credenciales
             </p>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Correo */}
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="email">Correo electrónico</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Ingresa tu usuario"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                  id="email"
+                  type="email"
+                  placeholder="tucorreo@ejemplo.com"
+                  value={credentials.email}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, email: e.target.value })
+                  }
                   className="h-12"
                   required
                 />
               </div>
-              
+
+              {/* Contraseña */}
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
@@ -74,7 +105,9 @@ export default function Login({ onLogin }: LoginProps) {
                     type={showPassword ? "text" : "password"}
                     placeholder="Ingresa tu contraseña"
                     value={credentials.password}
-                    onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                    onChange={(e) =>
+                      setCredentials({ ...credentials, password: e.target.value })
+                    }
                     className="h-12 pr-12"
                     required
                   />
@@ -94,9 +127,15 @@ export default function Login({ onLogin }: LoginProps) {
                 </div>
               </div>
 
+              {/* Error */}
+              {error && (
+                <p className="text-red-500 text-sm text-center">{error}</p>
+              )}
+
+              {/* Botón */}
               <Button
                 type="submit"
-                className="w-full h-12 medical-primary text-lg font-medium"
+                className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white text-lg font-medium"
               >
                 Ingresar
               </Button>
@@ -109,15 +148,6 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           </CardContent>
         </Card>
-
-        {/* Ilustración médica */}
-        <div className="mt-8 text-center">
-          <div className="inline-flex items-center space-x-2 text-gray-500">
-            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-            <span className="text-sm">Sistema seguro y confiable</span>
-            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse delay-100"></div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -113,6 +113,13 @@ export default function Calendar({ onNavigate }: CalendarProps) {
           <h1 className="text-3xl font-bold text-gray-900">Agenda</h1>
           <p className="text-gray-600 mt-1">Gestiona las citas médicas</p>
         </div>
+        <Button 
+          className="medical-primary"
+          onClick={() => setShowNewAppointmentModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nueva Cita
+        </Button>
       </div>
 
       {/* Filtros */}
@@ -148,13 +155,11 @@ export default function Calendar({ onNavigate }: CalendarProps) {
       />
 
       {/* Modal Nueva Cita */}
-     
-      <NewAppointmentModal 
+      <NewAppointmentModal
         isOpen={showNewAppointmentModal}
         onClose={() => setShowNewAppointmentModal(false)}
         onSave={handleNewAppointment}
       />
- 
 
       {/* Modal Detalles de Cita */}
       <Dialog open={showAppointmentDetails} onOpenChange={setShowAppointmentDetails}>

@@ -9,19 +9,51 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { Link, useNavigate } from "react-router-dom";
-
-
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandEmpty,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Signup() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
+    cedula: "",
     email: "",
     password: "",
     specialty: "",
   });
+
+  const specialties = [
+    "Medicina General",
+    "Pediatría",
+    "Cardiología",
+    "Dermatología",
+    "Ginecología",
+    "Traumatología",
+    "Neurología",
+    "Psiquiatría",
+    "Oftalmología",
+    "Odontología",
+    "Endocrinología",
+    "Otorrinolaringología",
+    "Medicina Interna",
+    "Urología",
+    "Oncología",
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +65,11 @@ export default function Signup() {
         form.email,
         form.password
       );
-
       const user = userCredential.user;
 
       await setDoc(doc(db, "doctors", user.uid), {
         nombre: form.nombre,
+        cedula: form.cedula,
         email: form.email,
         specialty: form.specialty,
         rol: "doctor",
@@ -45,7 +77,6 @@ export default function Signup() {
       });
 
       await updateProfile(user, { displayName: form.nombre });
-
       navigate("/login");
     } catch (err: any) {
       console.error(err);
@@ -62,15 +93,17 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-1">
+        {/* Encabezado */}
+        <div className="text-center mb-2">
           <img src={Imagen} alt="logo" className="w-20 mx-auto" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Crear cuenta</h1>
           <p className="text-gray-600">
-            Únete a MedConnect y gestiona tus pacientes fácilmente
+            Únete a <span className="font-semibold text-cyan-700">MedConnect</span> y gestiona tus pacientes fácilmente
           </p>
         </div>
 
-        <Card className="shadow-xl border-0">
+        {/* Tarjeta */}
+        <Card className="shadow-xl border-0 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-center text-gray-900 text-2xl">
               Registro de Profesional
@@ -78,7 +111,8 @@ export default function Signup() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Nombre */}
               <div>
                 <Label htmlFor="nombre">Nombre completo</Label>
                 <Input
@@ -86,29 +120,80 @@ export default function Signup() {
                   type="text"
                   placeholder="Dr. Juan Pérez"
                   value={form.nombre}
-                  onChange={(e) =>
-                    setForm({ ...form, nombre: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   required
                   className="h-12"
                 />
               </div>
 
+              {/* Cédula */}
               <div>
-                <Label htmlFor="specialty">Especialización</Label>
+                <Label htmlFor="cedula">Cédula</Label>
                 <Input
-                  id="specialty"
+                  id="cedula"
                   type="text"
-                  placeholder="Pediatría, Cardiología, Medicina General..."
-                  value={form.specialty}
-                  onChange={(e) =>
-                    setForm({ ...form, specialty: e.target.value })
-                  }
+                  placeholder= "Ejemplo: 123456789"
+                  value={form.cedula}
+                  onChange={(e) => setForm({ ...form, cedula: e.target.value })}
                   required
                   className="h-12"
                 />
               </div>
 
+              {/* Especialización */}
+              <div className="flex flex-col space-y-1">
+              <Label htmlFor="specialty">Especialización</Label>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between w-full h-12 px-3 border border-black rounded-md"
+                    )}
+                    onClick={() => setOpen(!open)}
+                  >
+                    <span className={cn("truncate", !form.specialty && "text-gray-500")}>
+                      {form.specialty || "Selecciona o busca una especialidad"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 text-gray-400" />
+                  </div>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-[320px] p-0 bg-white border border-gray-200 shadow-md rounded-md">
+                  <Command>
+                    <CommandInput
+                      placeholder="Buscar especialidad..."
+                      className="bg-white border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <CommandList className="bg-white">
+                      <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                      {specialties.map((specialty) => (
+                        <CommandItem
+                          key={specialty}
+                          value={specialty}
+                          onSelect={() => {
+                            setForm({ ...form, specialty });
+                            setOpen(false);
+                          }}
+                          className="cursor-pointer transition-all duration-100 hover:bg-gray-100 hover:shadow-[0_0_4px_rgba(0,0,0,0.1)]"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 text-cyan-600 transition-opacity",
+                              form.specialty === specialty ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {specialty}
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+
+
+              {/* Correo */}
               <div>
                 <Label htmlFor="email">Correo electrónico</Label>
                 <Input
@@ -116,14 +201,13 @@ export default function Signup() {
                   type="email"
                   placeholder="tuemail@ejemplo.com"
                   value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
                   className="h-12"
                 />
               </div>
 
+              {/* Contraseña */}
               <div>
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
@@ -154,10 +238,12 @@ export default function Signup() {
                 </div>
               </div>
 
+              {/* Errores */}
               {error && (
                 <p className="text-red-500 text-sm text-center">{error}</p>
               )}
 
+              {/* Botón */}
               <Button
                 type="submit"
                 className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white text-lg font-medium"

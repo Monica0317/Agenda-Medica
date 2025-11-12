@@ -12,6 +12,8 @@ interface SidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   doctor?: any;
+  collapsed: boolean;
+  setCollapsed: (value: boolean) => void;
 }
 
 const menuItems = [
@@ -60,11 +62,13 @@ export default function Sidebar({ activeSection, onSectionChange, doctor: doctor
   };
 
   return (
-    <div className={cn(
-      "h-screen  bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
-      collapsed ? "w-10" : "w-50"
-    )}>
-      {/* Header */}
+    <div
+        className={cn(
+          "h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
+          collapsed ? "w-16" : "w-45"
+        )}
+      >
+            {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <img src={Imagen} alt="icono" className={cn("object-contain", collapsed ? "w-8 h-8" : "w-12 h-10")} />

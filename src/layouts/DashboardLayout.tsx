@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 export default function DashboardLayout() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [doctor, setDoctor] = useState<any>(null);
+  const [collapsed, setCollapsed] = useState(false); // 👈 Nuevo estado
   const location = useLocation();
 
   // Detectar sección activa por URL
@@ -35,13 +36,22 @@ export default function DashboardLayout() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 transition-all duration-300">
+      {/* Sidebar con control de colapso */}
       <Sidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         doctor={doctor}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed} // 👈 se envía el setter
       />
-      <main className="flex-1 overflow-y-auto ml-64">
+
+      {/* Main dinámico */}
+      <main
+        className={`flex-1 overflow-y-auto transition-all duration-300 ${
+          collapsed ? "ml-16" : "ml-4"
+        }`}
+      >
         <div className="p-6">
           <Outlet />
         </div>

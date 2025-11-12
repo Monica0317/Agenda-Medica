@@ -14,12 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle, Calendar, Clock, User } from "lucide-react";
+import { CheckCircle, Calendar, Clock, User, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/dateUtils";
 
 export default function PatientPortal() {
-  const [activeTab, setActiveTab] = useState<"request" | "history">("request");
+  const [activeTab, setActiveTab] = useState("request");
   const [appointmentForm, setAppointmentForm] = useState({
     name: "",
     documentType: "",
@@ -38,13 +37,20 @@ export default function PatientPortal() {
     notes: "",
     doctorId: "",
   });
+  const [messageForm, setMessageForm] = useState({
+    specialty: "",
+    doctorId: "",
+    subject: "",
+    content: "",
+  });
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [doctors, setDoctors] = useState<any[]>([]);
-  const [filteredDoctors, setFilteredDoctors] = useState<any[]>([]);
+  const [isMessageSent, setIsMessageSent] = useState(false);
+  const [user, setUser] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
+  const [filteredDoctorsForMessage, setFilteredDoctorsForMessage] = useState([]);
 
-  // 🔹 Detectar usuario autenticado y cargar citas
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -57,7 +63,6 @@ export default function PatientPortal() {
       }
     });
 
-    // Cargar todos los doctores disponibles
     const fetchDoctors = async () => {
       const docsSnap = await getDocs(collection(db, "doctors"));
       const list = docsSnap.docs.map((doc) => ({
@@ -71,19 +76,29 @@ export default function PatientPortal() {
     return () => unsubscribe();
   }, []);
 
-  // 🔹 Filtrar doctores por especialidad
+  // Filtrar doctores por especialidad para citas
   useEffect(() => {
     if (appointmentForm.specialty) {
       const filtered = doctors.filter((doc) => doc.specialty === appointmentForm.specialty);
       setFilteredDoctors(filtered);
-      setAppointmentForm({ ...appointmentForm, doctorId: "" }); // resetear doctor seleccionado
+      setAppointmentForm({ ...appointmentForm, doctorId: "" });
     } else {
       setFilteredDoctors([]);
     }
   }, [appointmentForm.specialty, doctors]);
 
-  // Enviar solicitud de cita
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Filtrar doctores por especialidad para mensajes
+  useEffect(() => {
+    if (messageForm.specialty) {
+      const filtered = doctors.filter((doc) => doc.specialty === messageForm.specialty);
+      setFilteredDoctorsForMessage(filtered);
+      setMessageForm({ ...messageForm, doctorId: "" });
+    } else {
+      setFilteredDoctorsForMessage([]);
+    }
+  }, [messageForm.specialty, doctors]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user) {
@@ -123,8 +138,50 @@ export default function PatientPortal() {
         notes: "",
         doctorId: "",
       });
+
+      setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
       console.error("Error al guardar cita:", error);
+      alert("Error al enviar la solicitud");
+    }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+
+    if (!user) {
+      alert("Debes iniciar sesión para enviar mensajes.");
+      return;
+    }
+
+    if (!messageForm.doctorId || !messageForm.subject || !messageForm.content) {
+      alert("Por favor completa todos los campos del mensaje.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "messages"), {
+        from: user.email || "Paciente",
+        subject: messageForm.subject,
+        content: messageForm.content,
+        type: "patient",
+        read: false,
+        date: new Date().toISOString(),
+        toDoctorId: messageForm.doctorId,
+      });
+
+      setIsMessageSent(true);
+      setMessageForm({
+        specialty: "",
+        doctorId: "",
+        subject: "",
+        content: "",
+      });
+
+      setTimeout(() => setIsMessageSent(false), 5000);
+    } catch (error) {
+      console.error("Error al enviar mensaje:", error);
+      alert("Error al enviar el mensaje");
     }
   };
 
@@ -135,6 +192,11 @@ export default function PatientPortal() {
     "11:00", "11:30", "12:00", "12:30", "14:00", "14:30", "15:00", "15:30",
     "16:00", "16:30", "17:00", "17:30",
   ];
+
+  const formatDateTime = (date, time) => {
+    if (!date) return "Fecha no definida";
+    return `${new Date(date).toLocaleDateString('es-ES')} ${time || ''}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-emerald-50">
@@ -148,7 +210,7 @@ export default function PatientPortal() {
             <h1 className="text-2xl font-bold text-gray-900">
               Portal del Paciente - MedConnect
             </h1>
-            <p className="text-gray-600">Gestión de citas médicas</p>
+            <p className="text-gray-600">Gestión de citas y mensajes médicos</p>
           </div>
         </div>
       </div>
@@ -158,7 +220,7 @@ export default function PatientPortal() {
         <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-8">
           <Button
             variant={activeTab === "request" ? "default" : "ghost"}
-            className={`flex-1 ${activeTab === "request" ? "medical-primary" : ""}`}
+            className={`flex-1 ${activeTab === "request" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
             onClick={() => setActiveTab("request")}
           >
             <Calendar className="w-4 h-4 mr-2" />
@@ -167,15 +229,24 @@ export default function PatientPortal() {
 
           <Button
             variant={activeTab === "history" ? "default" : "ghost"}
-            className={`flex-1 ${activeTab === "history" ? "medical-primary" : ""}`}
+            className={`flex-1 ${activeTab === "history" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
             onClick={() => setActiveTab("history")}
           >
             <Clock className="w-4 h-4 mr-2" />
             Mis Citas
           </Button>
+
+          <Button
+            variant={activeTab === "messages" ? "default" : "ghost"}
+            className={`flex-1 ${activeTab === "messages" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
+            onClick={() => setActiveTab("messages")}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Enviar Mensaje
+          </Button>
         </div>
 
-        {/* FORMULARIO */}
+        {/* FORMULARIO DE CITA */}
         {activeTab === "request" && (
           <div className="space-y-6">
             {isSubmitted ? (
@@ -321,85 +392,87 @@ export default function PatientPortal() {
                       </div>
                     </div>
 
-                  
+                    {/* PREFERENCIAS DE CITA */}
                     <div className="border-t pt-6">
                       <h3 className="font-semibold text-lg mb-3 text-gray-700">Preferencias de Cita</h3>
-                       {/* Especialidad */}
-                    <div className="space-y-2">
-                      <Label htmlFor="specialty">Especialidad *</Label>
-                      <Select
-                        value={appointmentForm.specialty}
-                        onValueChange={(value) => setAppointmentForm({ ...appointmentForm, specialty: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una especialidad" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {specialties.map((spec, index) => (
-                            <SelectItem key={index} value={spec}>
-                              {spec}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Doctor */}
-                    {appointmentForm.specialty && (
-                      <div className="space-y-2">
-                        <Label htmlFor="doctor">Doctor *</Label>
-                        <Select
-                          value={appointmentForm.doctorId}
-                          onValueChange={(value) => setAppointmentForm({ ...appointmentForm, doctorId: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un doctor" />
-                          </SelectTrigger>
-                          <SelectContent>a
-                            {filteredDoctors.length > 0 ? (
-                              filteredDoctors.map((doc) => (
-                                <SelectItem key={doc.id} value={doc.id}>
-                                  {doc.nombre} — {doc.specialty}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem disabled value="">
-                                No hay doctores disponibles
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div>
-                          <Label>Fecha Preferida</Label>
-                          <Input
-                            type="date"
-                            value={appointmentForm.date}
-                            onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
-                            min={new Date().toISOString().split("T")[0]}
-                          />
-                        </div>
-                        <div>
-                          <Label>Hora Preferida</Label>
+                          <Label>Especialidad *</Label>
                           <Select
-                            value={appointmentForm.time}
-                            onValueChange={(value) => setAppointmentForm({ ...appointmentForm, time: value })}
+                            value={appointmentForm.specialty}
+                            onValueChange={(value) => setAppointmentForm({ ...appointmentForm, specialty: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una hora" />
+                              <SelectValue placeholder="Selecciona una especialidad" />
                             </SelectTrigger>
                             <SelectContent>
-                              {timeSlots.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
+                              {specialties.map((spec, index) => (
+                                <SelectItem key={index} value={spec}>
+                                  {spec}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="md:col-span-2">
+
+                        {appointmentForm.specialty && (
+                          <div>
+                            <Label>Doctor *</Label>
+                            <Select
+                              value={appointmentForm.doctorId}
+                              onValueChange={(value) => setAppointmentForm({ ...appointmentForm, doctorId: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un doctor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filteredDoctors.length > 0 ? (
+                                  filteredDoctors.map((doc) => (
+                                    <SelectItem key={doc.id} value={doc.id}>
+                                      {doc.nombre} — {doc.specialty}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem disabled value="">
+                                    No hay doctores disponibles
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Fecha Preferida</Label>
+                            <Input
+                              type="date"
+                              value={appointmentForm.date}
+                              onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+                              min={new Date().toISOString().split("T")[0]}
+                            />
+                          </div>
+                          <div>
+                            <Label>Hora Preferida</Label>
+                            <Select
+                              value={appointmentForm.time}
+                              onValueChange={(value) => setAppointmentForm({ ...appointmentForm, time: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona una hora" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map((time) => (
+                                  <SelectItem key={time} value={time}>
+                                    {time}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div>
                           <Label>Notas o solicitudes especiales</Label>
                           <Textarea
                             value={appointmentForm.notes}
@@ -409,7 +482,7 @@ export default function PatientPortal() {
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full medical-primary">
+                    <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
                       Enviar Solicitud
                     </Button>
                   </form>
@@ -470,6 +543,109 @@ export default function PatientPortal() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* ENVIAR MENSAJE */}
+        {activeTab === "messages" && (
+          <div className="space-y-6">
+            {isMessageSent ? (
+              <Card className="border-emerald-200 bg-emerald-50">
+                <CardContent className="p-8 text-center">
+                  <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-emerald-900 mb-2">
+                    ¡Mensaje Enviado!
+                  </h3>
+                  <p className="text-emerald-700 mb-4">
+                    Tu mensaje ha sido enviado al doctor. Recibirás una respuesta pronto.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Enviar Mensaje a un Doctor</CardTitle>
+                  <p className="text-gray-600">
+                    Selecciona un doctor y envía tu consulta o mensaje
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSendMessage} className="space-y-4">
+                    <div>
+                      <Label>Especialidad *</Label>
+                      <Select
+                        value={messageForm.specialty}
+                        onValueChange={(value) => setMessageForm({ ...messageForm, specialty: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una especialidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {specialties.map((spec, index) => (
+                            <SelectItem key={index} value={spec}>
+                              {spec}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {messageForm.specialty && (
+                      <div>
+                        <Label>Doctor *</Label>
+                        <Select
+                          value={messageForm.doctorId}
+                          onValueChange={(value) => setMessageForm({ ...messageForm, doctorId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un doctor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredDoctorsForMessage.length > 0 ? (
+                              filteredDoctorsForMessage.map((doc) => (
+                                <SelectItem key={doc.id} value={doc.id}>
+                                  {doc.nombre} — {doc.specialty}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem disabled value="">
+                                No hay doctores disponibles
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div>
+                      <Label>Asunto *</Label>
+                      <Input
+                        value={messageForm.subject}
+                        onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
+                        placeholder="Ej: Solicitud de cita o consulta médica"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Mensaje *</Label>
+                      <Textarea
+                        value={messageForm.content}
+                        onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })}
+                        placeholder="Escribe tu mensaje aquí..."
+                        className="min-h-[150px]"
+                        required
+                      />
+                    </div>
+
+                    <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+                      <Send className="w-4 h-4 mr-2" />
+                      Enviar Mensaje
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
       </div>
     </div>

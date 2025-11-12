@@ -38,24 +38,7 @@ export interface Message {
   type: 'patient' | 'system' | 'reminder';
 }
 
-export interface DoctorSettings {
-  name: string;
-  specialty: string;
-  license: string;
-  phone: string;
-  email: string;
-  workingHours: {
-    start: string;
-    end: string;
-    days: string[];
-  };
-  appointmentDuration: number;
-  notifications: {
-    email: boolean;
-    sms: boolean;
-    reminders: boolean;
-  };
-}
+
 
 export const mockPatients: Patient[] = [
   {
@@ -315,21 +298,3 @@ export const mockMessages: Message[] = [
 
 
 
-export const mockDoctorSettings: DoctorSettings = {
-  name: 'Dr. Roberto García Mendoza',
-  specialty: 'Medicina General',
-  license: 'COL-28-123456789',
-  phone: '+34 912 345 678',
-  email: 'dr.garcia@clinica.com',
-  workingHours: {
-    start: '09:00',
-    end: '18:00',
-    days: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-  },
-  appointmentDuration: 30,
-  notifications: {
-    email: true,
-    sms: true,
-    reminders: true
-  }
-};

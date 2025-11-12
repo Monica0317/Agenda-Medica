@@ -206,14 +206,7 @@ export default function PatientProfile() {
           <p className="text-gray-600">Perfil del paciente</p>
         </div>
 
-        {!patient.accepted && (
-          <Button
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={() => setShowAcceptModal(true)}
-          >
-            Aceptar Paciente
-          </Button>
-        )}
+       
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

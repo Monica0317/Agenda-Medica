@@ -17,7 +17,11 @@ interface LoginProps {
 export default function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [credentials, setCredentials] = useState({
+    cedula: "",
+    email: "",
+    password: "",
+  });
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +29,6 @@ export default function Login({ onLogin }: LoginProps) {
     setError("");
 
     try {
-      // Autenticación en Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         credentials.email,
@@ -34,21 +37,24 @@ export default function Login({ onLogin }: LoginProps) {
 
       const user = userCredential.user;
 
-      // Verificar si el usuario existe en la colección "doctors"
       const doctorsRef = collection(db, "doctors");
-      const q = query(doctorsRef, where("email", "==", user.email));
+      const q = query(
+        doctorsRef,
+        where("email", "==", user.email),
+        where("cedula", "==", credentials.cedula)
+      );
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError(" No tienes permisos para acceder. Solo los doctores pueden ingresar.");
+        setError(
+          "No tienes permisos para acceder o la cédula no coincide."
+        );
         await auth.signOut();
         return;
       }
 
- 
       onLogin();
       navigate("/dashboard");
-
     } catch (err: any) {
       console.error("Error en login:", err.message);
       setError("Credenciales incorrectas o usuario no registrado.");
@@ -64,7 +70,9 @@ export default function Login({ onLogin }: LoginProps) {
             <img src={Imagen} alt="icono" className="w-20 h-30 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">MedConnect</h1>
-          <p className="text-gray-600">Gestión profesional de consultorios médicos</p>
+          <p className="text-gray-600">
+            Gestión profesional de consultorios médicos
+          </p>
         </div>
 
         {/* Tarjeta */}
@@ -80,6 +88,22 @@ export default function Login({ onLogin }: LoginProps) {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 🪪 Cédula */}
+              <div className="space-y-2">
+                <Label htmlFor="cedula">Cédula</Label>
+                <Input
+                  id="cedula"
+                  type="text"
+                  placeholder="Número de identificación"
+                  value={credentials.cedula}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, cedula: e.target.value })
+                  }
+                  className="h-12"
+                  required
+                />
+              </div>
+
               {/* Correo */}
               <div className="space-y-2">
                 <Label htmlFor="email">Correo electrónico</Label>
@@ -142,7 +166,10 @@ export default function Login({ onLogin }: LoginProps) {
             </form>
 
             <div className="mt-6 text-center">
-              <Button variant="link" className="text-cyan-600 hover:text-cyan-700">
+              <Button
+                variant="link"
+                className="text-cyan-600 hover:text-cyan-700"
+              >
                 ¿Olvidaste tu contraseña?
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Filter, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import CalendarView from '@/components/CalendarView';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
-import { mockAppointments, Appointment } from '@/data/mockData';
+import { Appointment } from '@/data/mockData';
 import { formatDateTime } from '@/lib/dateUtils';
+import { 
+  collection, 
+  query, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc,
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from "@/firebase/config";
+
 
 interface NavigationData {
   patientId?: string;
@@ -19,23 +31,63 @@ interface CalendarProps {
 }
 
 export default function Calendar({ onNavigate }: CalendarProps) {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar citas en tiempo real desde Firebase
+  useEffect(() => {
+    const appointmentsRef = collection(db, 'appointments');
+    const q = query(appointmentsRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const appointmentsData: Appointment[] = [];
+      snapshot.forEach((doc) => {
+        appointmentsData.push({
+          id: doc.id,
+          ...doc.data()
+        } as Appointment);
+      });
+      setAppointments(appointmentsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error al cargar citas:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = appointment.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         appointment.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const patientName = appointment.patientName?.toLowerCase() || "";
+  const reason = appointment.reason?.toLowerCase() || "";
+  const status = appointment.status || "";
 
-  const handleNewAppointment = (appointment: Appointment) => {
-    setAppointments(prev => [...prev, appointment]);
+  const matchesSearch =
+    patientName.includes(searchTerm.toLowerCase()) ||
+    reason.includes(searchTerm.toLowerCase());
+
+  const matchesStatus = statusFilter === "all" || status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+});
+
+
+  const handleNewAppointment = async (appointment: Omit<Appointment, 'id'>) => {
+    try {
+      await addDoc(collection(db, 'appointments'), {
+        ...appointment,
+        createdAt: serverTimestamp()
+      });
+      setShowNewAppointmentModal(false);
+    } catch (error) {
+      console.error('Error al crear cita:', error);
+      alert('Error al crear la cita. Por favor, intenta de nuevo.');
+    }
   };
 
   const handleAppointmentClick = (appointment: Appointment) => {
@@ -44,31 +96,47 @@ export default function Calendar({ onNavigate }: CalendarProps) {
   };
 
   const handleEditAppointment = (appointment: Appointment) => {
-  
     console.log('Editar cita:', appointment);
     setShowAppointmentDetails(false);
   };
 
-  const handleDeleteAppointment = (appointmentId: string) => {
+  const handleDeleteAppointment = async (appointmentId: string) => {
     if (confirm('¿Estás seguro de que quieres eliminar esta cita?')) {
-      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
-      setShowAppointmentDetails(false);
+      try {
+        await deleteDoc(doc(db, 'appointments', appointmentId));
+        setShowAppointmentDetails(false);
+      } catch (error) {
+        console.error('Error al eliminar cita:', error);
+        alert('Error al eliminar la cita. Por favor, intenta de nuevo.');
+      }
     }
   };
 
-  const handleConfirmAppointment = (appointmentId: string) => {
-    setAppointments(prev => prev.map(apt => 
-      apt.id === appointmentId ? { ...apt, status: 'confirmed' as const } : apt
-    ));
-    setShowAppointmentDetails(false);
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    try {
+      await updateDoc(doc(db, 'appointments', appointmentId), {
+        status: 'confirmed',
+        updatedAt: serverTimestamp()
+      });
+      setShowAppointmentDetails(false);
+    } catch (error) {
+      console.error('Error al confirmar cita:', error);
+      alert('Error al confirmar la cita. Por favor, intenta de nuevo.');
+    }
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
+  const handleCancelAppointment = async (appointmentId: string) => {
     if (confirm('¿Estás seguro de que quieres cancelar esta cita?')) {
-      setAppointments(prev => prev.map(apt => 
-        apt.id === appointmentId ? { ...apt, status: 'cancelled' as const } : apt
-      ));
-      setShowAppointmentDetails(false);
+      try {
+        await updateDoc(doc(db, 'appointments', appointmentId), {
+          status: 'cancelled',
+          updatedAt: serverTimestamp()
+        });
+        setShowAppointmentDetails(false);
+      } catch (error) {
+        console.error('Error al cancelar cita:', error);
+        alert('Error al cancelar la cita. Por favor, intenta de nuevo.');
+      }
     }
   };
 
@@ -105,6 +173,17 @@ export default function Calendar({ onNavigate }: CalendarProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando citas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -113,13 +192,6 @@ export default function Calendar({ onNavigate }: CalendarProps) {
           <h1 className="text-3xl font-bold text-gray-900">Agenda</h1>
           <p className="text-gray-600 mt-1">Gestiona las citas médicas</p>
         </div>
-        <Button 
-          className="medical-primary"
-          onClick={() => setShowNewAppointmentModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nueva Cita
-        </Button>
       </div>
 
       {/* Filtros */}
@@ -163,7 +235,7 @@ export default function Calendar({ onNavigate }: CalendarProps) {
 
       {/* Modal Detalles de Cita */}
       <Dialog open={showAppointmentDetails} onOpenChange={setShowAppointmentDetails}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>Detalles de la Cita</DialogTitle>
           </DialogHeader>

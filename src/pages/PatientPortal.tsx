@@ -86,6 +86,21 @@ export default function PatientPortal() {
       setFilteredDoctors([]);
     }
   }, [appointmentForm.specialty, doctors]);
+const [receivedMessages, setReceivedMessages] = useState([]);
+
+useEffect(() => {
+  if (!user) return;
+  const fetchMessages = async () => {
+    const q = query(collection(db, "messages"), where("from", "==", user.email));
+    const snapshot = await getDocs(q);
+    const msgs = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setReceivedMessages(msgs);
+  };
+  fetchMessages();
+}, [user]);
 
   // Filtrar doctores por especialidad para mensajes
   useEffect(() => {
@@ -486,6 +501,57 @@ export default function PatientPortal() {
                       Enviar Solicitud
                     </Button>
                   </form>
+                  <div className="mt-10 border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Mensajes enviados y respuestas
+                    </h3>
+                    {receivedMessages.length === 0 ? (
+                      <p className="text-gray-600 text-center">Aún no has enviado mensajes.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {receivedMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm"
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <div>
+                                <p className="font-medium text-gray-900">{msg.subject}</p>
+                                <p className="text-sm text-gray-600">
+                                  Enviado el {new Date(msg.date).toLocaleString("es-ES")}
+                                </p>
+                              </div>
+                              <Badge
+                                className={`${
+                                  msg.reply
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-gray-100 text-gray-600"
+                                }`}
+                              >
+                                {msg.reply ? "Respondido" : "Sin respuesta"}
+                              </Badge>
+                            </div>
+
+                            <div className="mt-2">
+                              <p className="text-gray-800 mb-2">
+                                <strong>Tu mensaje:</strong> {msg.content}
+                              </p>
+                              {msg.reply ? (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">
+                                  <p className="text-emerald-800">
+                                    <strong>Respuesta del médico:</strong> {msg.reply}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-gray-500 italic">Aún sin respuesta del médico.</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </CardContent>
               </Card>
             )}

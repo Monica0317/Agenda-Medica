@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { collection, query, where, getDocs, updateDoc, doc, deleteDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/firebase/config';
+import { sendReminderEmail } from "@/utils/sendReminder";
 
 export default function Messages() {
   const [messages, setMessages] = useState([]);
@@ -20,6 +21,26 @@ export default function Messages() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  function RecordatorioPaciente({ patientEmail, patientName }) {
+  const handleSendReminder = async () => {
+    const success = await sendReminderEmail(
+      patientEmail,
+      patientName,
+      "Hola, este es un recordatorio de su próxima cita médica."
+    );
+    if (success) alert("Recordatorio enviado correctamente ✅");
+    else alert("Error al enviar el recordatorio ❌");
+  };
+
+  return (
+    <Button
+      onClick={handleSendReminder}
+      className="bg-cyan-600 hover:bg-cyan-700 text-white"
+    >
+      Enviar recordatorio
+    </Button>
+  );
+}
   // Cargar mensajes en tiempo real cuando el doctor inicia sesión
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -28,9 +49,10 @@ export default function Messages() {
       if (user) {
         try {
           const doctorsQuery = query(
-            collection(db, "doctors"),
-            where("userId", "==", user.uid)
-          );
+          collection(db, "doctors"),
+          where("email", "==", user.email)
+        );
+
           const doctorsSnapshot = await getDocs(doctorsQuery);
 
           if (!doctorsSnapshot.empty) {
@@ -218,6 +240,27 @@ export default function Messages() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
+              {selectedMessage && selectedMessage.type === 'patient' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    sendReminderEmail(
+                      selectedMessage.from,
+                      selectedMessage.from.split('@')[0],
+                      `Hola, este es un recordatorio de su próxima cita médica con el Dr. ${currentUser?.displayName || 'su médico de cabecera'}.`
+                    ).then(success => {
+                      if (success) alert("Recordatorio enviado correctamente ✅");
+                      else alert("Error al enviar el recordatorio ❌");
+                    })
+                  }
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Enviar recordatorio
+                </Button>
+              )}
+
+
               <div className="flex items-center justify-between">
                 <CardTitle>Bandeja de entrada</CardTitle>
                 <Badge variant="secondary">{filteredMessages.length}</Badge>
